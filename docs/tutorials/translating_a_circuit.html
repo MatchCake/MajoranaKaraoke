@@ -1,0 +1,873 @@
+
+
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Translating a circuit into matchgates &mdash; MajoranaKaraoke 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../static/css/theme.min.css" type="text/css" />
+  <link rel="stylesheet" href="../static/css/custom.css" type="text/css" />
+  <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../static/css/theme.min.css" type="text/css" />
+  <link rel="stylesheet" href="../static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quantum kernel SVC on Iris: unconstrained vs matchgate" href="iris_kernel_svc.html" />
+    <link rel="prev" title="MajoranaKaraoke" href="../readme.html" />
+<script type="text/javascript">
+window.MathJax = {
+  options: {
+    ignoreHtmlClass: 'tex2jax_ignore',
+    processHtmlClass: 'tex2jax_process|mathjax_process|math|output_area'
+  }
+};
+</script>
+
+
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <a class="site-nav-toggle hidden-lg-up"><i class="icon-menu"></i></a>
+            <a class="site-title" href="../index.html">
+                MajoranaKaraoke
+            </a>
+        </div>
+    </header>
+
+
+<div class="breadcrumbs-outer hidden-xs-down">
+    <div class="container">
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a></li>
+        
+      <li>Translating a circuit into matchgates</li>
+    
+    
+      <li class="breadcrumbs-aside">
+        
+            
+            <a href="../sources/tutorials/translating_a_circuit.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+</div>
+    </div>
+</div>
+    <div class="main-outer">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-lg-3 site-nav">
+                    
+<div role="search">
+    <form class="search" action="../search.html" method="get">
+        <div class="icon-input">
+            <input type="text" name="q" placeholder="Search" />
+            <span class="icon-search"></span>
+        </div>
+        <input type="submit" value="Go" class="d-hidden" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+                    <div class="site-nav-tree">
+                        
+                            
+                            
+                                <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">MajoranaKaraoke</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#description">Description</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../readme.html#translation-rules">Translation rules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#requirements">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#quick-usage-preview">Quick Usage Preview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../readme.html#run-any-circuit-on-mk-qubit">Run any circuit on <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../readme.html#see-what-mk-qubit-actually-simulates">See what <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> actually simulates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../readme.html#write-your-own-translation-rules">Write your own translation rules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#tutorials">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#important-links">Important Links</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html#citation">Citation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Translating a circuit into matchgates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#imports">Imports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-first-circuit">A first circuit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#one-operation-at-a-time">One operation at a time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exact-on-the-free-fermion-subset">Exact on the free-fermion subset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-generic-circuit">A generic circuit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-rules">Custom rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scaling-to-40-qubits">Scaling to 40 qubits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="iris_kernel_svc.html">Quantum kernel SVC on Iris: unconstrained vs matchgate</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#setup">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#imports">Imports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#load-and-scale-the-data">Load and scale the data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#embedding-circuit-and-fidelity-kernel">Embedding circuit and fidelity kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#what-mk-qubit-actually-runs">What <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> actually runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#gram-matrices-with-parameter-broadcasting">Gram matrices with parameter broadcasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#sanity-checks">Sanity checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#train-the-classifiers">Train the classifiers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#visualize-the-gram-matrices">Visualize the Gram matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#cost-scaling">Cost scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iris_kernel_svc.html#discussion">Discussion</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../majorana_karaoke.html">majorana_karaoke package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../majorana_karaoke.html#module-majorana_karaoke.matchgate_translator">majorana_karaoke.matchgate_translator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../majorana_karaoke.html#module-majorana_karaoke.transforms">majorana_karaoke.transforms module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../majorana_karaoke.html#module-majorana_karaoke.mk_device">majorana_karaoke.mk_device module</a></li>
+</ul>
+</li>
+</ul>
+
+                            
+                        
+                    </div>
+                </div>
+                <div class="col-12 col-lg-9">
+                    <div class="document">
+                        
+                            
+  <section class="tex2jax_ignore mathjax_ignore" id="translating-a-circuit-into-matchgates">
+<h1>Translating a circuit into matchgates<a class="headerlink" href="#translating-a-circuit-into-matchgates" title="Permalink to this heading">¶</a></h1>
+<table class="nt-notebook-buttons" align="center">
+  <td>
+    <a target="_blank" href="https://MatchCake.github.io/MajoranaKaraoke/">Documentation</a>
+  </td>
+  <td>
+    <a target="_blank" href="https://colab.research.google.com/github/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb">Run in Google Colab</a>
+  </td>
+  <td>
+    <a target="_blank" href="https://github.com/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb">View source on GitHub</a>
+  </td>
+  <td>
+    <a href="https://github.com/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb?raw=true">Download notebook</a>
+  </td>
+</table><p>A matchgate is a two-qubit gate acting on neighbouring wires as</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+G(A, B) = \begin{pmatrix} A_{11} &amp; 0 &amp; 0 &amp; A_{12} \\ 0 &amp; B_{11} &amp; B_{12} &amp; 0 \\ 0 &amp; B_{21} &amp; B_{22} &amp; 0 \\ A_{21} &amp; 0 &amp; 0 &amp; A_{22} \end{pmatrix},
+\qquad \det A = \det B .
+\end{split}\]</div>
+<p>Through the Jordan–Wigner transformation, matchgates are free-fermion evolutions, so a circuit made of them is simulated
+in polynomial time [1-3], here by MatchCake’s <code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code> device. Generic circuits are believed to be hard to simulate
+classically: a statevector simulator stores <span class="math notranslate nohighlight">\(2^n\)</span> amplitudes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">majorana_karaoke</span></code> translates any unitary circuit into a matchgate circuit, its <em>karaoke</em> version, and simulates it on
+<code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code> through the <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> device. An <code class="docutils literal notranslate"><span class="pre">Adjoint</span></code> operation, which <code class="docutils literal notranslate"><span class="pre">qml.adjoint</span></code> creates by default, is translated
+into the inverse of the translation of its base. MatchCake operations and the state preparations that <code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code>
+executes, such as <code class="docutils literal notranslate"><span class="pre">BasisState</span></code> (extended with zeros to every wire), are kept as they are. Every other operation goes
+through the first rule that applies:</p>
+<ol class="arabic simple">
+<li><p><strong>Rules by name.</strong> <code class="docutils literal notranslate"><span class="pre">CNOT</span></code> takes its Mølmer–Sørensen form
+<span class="math notranslate nohighlight">\(\mathrm{CNOT}_{c,t} = e^{-i\pi/4}\, R_Y^{(c)}(-\tfrac{\pi}{2})\, R_X^{(c)}(-\tfrac{\pi}{2})\, R_X^{(t)}(-\tfrac{\pi}{2})\, \mathrm{XX}_{c,t}(\tfrac{\pi}{2})\, R_Y^{(c)}(\tfrac{\pi}{2})\)</span>,
+whose entangling part <span class="math notranslate nohighlight">\(\mathrm{XX}(\tfrac{\pi}{2}) = e^{-i\frac{\pi}{4} X \otimes X}\)</span> is a matchgate. <code class="docutils literal notranslate"><span class="pre">GlobalPhase</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Identity</span></code> are dropped. The operations a rule returns are translated in turn.</p></li>
+<li><p><strong>Matchgates</strong>, that is two-qubit gates that are matchgates for every value of their scalar parameters, such as
+<code class="docutils literal notranslate"><span class="pre">IsingXX</span></code>, <code class="docutils literal notranslate"><span class="pre">IsingYY</span></code>, <code class="docutils literal notranslate"><span class="pre">IsingXY</span></code> or <code class="docutils literal notranslate"><span class="pre">SingleExcitation</span></code>, become a <code class="docutils literal notranslate"><span class="pre">MatchgateOperation</span></code>. On
+distant wires, <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code> gates carry the higher wire next to the lower one and back: the result is the fermionic
+version of the gate, which carries a Jordan–Wigner string <span class="math notranslate nohighlight">\(Z\)</span> on the wires in between.</p></li>
+<li><p><strong>Single-qubit gates.</strong> A gate <span class="math notranslate nohighlight">\(G\)</span> on the wire <span class="math notranslate nohighlight">\(w\)</span> is dressed into the matchgate
+<span class="math notranslate nohighlight">\(M(G, G) = \mathrm{CNOT}_{w,w+1}\,(G \otimes I)\,\mathrm{CNOT}_{w,w+1}\)</span> on <span class="math notranslate nohighlight">\((w, w+1)\)</span>. On the last wire, it becomes
+<span class="math notranslate nohighlight">\(M(G, XGX) = \mathrm{CNOT}_{w,w-1}\,(I \otimes G)\,\mathrm{CNOT}_{w,w-1}\)</span> on <span class="math notranslate nohighlight">\((w-1, w)\)</span>. The dressed gate acts as <span class="math notranslate nohighlight">\(G\)</span>
+only when <span class="math notranslate nohighlight">\(G\)</span> is diagonal.</p></li>
+<li><p><strong>Anything else</strong> is decomposed, and its decomposition is translated. An operation with a matrix but no
+decomposition is translated as a <code class="docutils literal notranslate"><span class="pre">QubitUnitary</span></code> of its matrix, with a warning.</p></li>
+</ol>
+<p>The translation is therefore exact for circuits made of neighbouring matchgates and diagonal single-qubit gates. For any
+other circuit, it gives a matchgate counterpart of the circuit, not the circuit itself. This notebook checks each of these
+statements numerically.</p>
+<p>[1] L. G. Valiant, <em>Quantum circuits that can be simulated classically in polynomial time</em>, SIAM J. Comput. <strong>31</strong>, 1229
+(2002).</p>
+<p>[2] B. M. Terhal and D. P. DiVincenzo, <em>Classical simulation of noninteracting-fermion quantum circuits</em>, Phys. Rev. A
+<strong>65</strong>, 032325 (2002).</p>
+<p>[3] R. Jozsa and A. Miyake, <em>Matchgates and classical simulation of quantum circuits</em>, Proc. R. Soc. A <strong>464</strong>, 3089
+(2008).</p>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this heading">¶</a></h2>
+<p>Install the package if needed, for example in Google Colab, by uncommenting the line below.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># @title Install dependencies {display-mode: "form"}</span>
+
+<span class="c1"># !pip install git+https://github.com/MatchCake/MajoranaKaraoke</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="imports">
+<h2>Imports<a class="headerlink" href="#imports" title="Permalink to this heading">¶</a></h2>
+<p>We use PennyLane to write circuits, <code class="docutils literal notranslate"><span class="pre">default.qubit</span></code> as the statevector reference and <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> (or equivalently
+<code class="docutils literal notranslate"><span class="pre">majorana_karaoke.MajoranaKaraokeDevice</span></code>) to run their matchgate translation. A few helpers compare the results.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pennylane</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matchcake.operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">fSWAP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pennylane.operation</span><span class="w"> </span><span class="kn">import</span> <span class="n">Operator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pennylane.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorLike</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">majorana_karaoke</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mk</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">total_variation_distance</span><span class="p">(</span><span class="n">probs</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">,</span> <span class="n">other_probs</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Total variation distance between two probability distributions.</span>
+
+<span class="sd">    :param probs: The first distribution.</span>
+<span class="sd">    :param other_probs: The second distribution.</span>
+<span class="sd">    :return: Half of the l1 distance between the two distributions, between 0 (identical) and 1 (disjoint).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">-</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">other_probs</span><span class="p">))))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">max_abs_difference</span><span class="p">(</span><span class="n">array</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">,</span> <span class="n">other_array</span><span class="p">:</span> <span class="n">TensorLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Largest absolute difference between the entries of two arrays.</span>
+
+<span class="sd">    :param array: The first array.</span>
+<span class="sd">    :param other_array: The second array.</span>
+<span class="sd">    :return: The largest absolute difference.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">)</span> <span class="o">-</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">other_array</span><span class="p">))))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">operations_matrix</span><span class="p">(</span><span class="n">operations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Operator</span><span class="p">],</span> <span class="n">wire_order</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Unitary matrix of a sequence of operations applied one after the other.</span>
+
+<span class="sd">    :param operations: The operations, in the order they are applied.</span>
+<span class="sd">    :param wire_order: The wires of the matrix.</span>
+<span class="sd">    :return: The matrix of the product of the operations.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">tape</span><span class="o">.</span><span class="n">QuantumScript</span><span class="p">(</span><span class="n">operations</span><span class="p">),</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">wire_order</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="n">operations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Operator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Short description of a sequence of operations: their names and wires.</span>
+
+<span class="sd">    :param operations: The operations to describe.</span>
+<span class="sd">    :return: The comma-separated names and wires of the operations.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="n">op</span><span class="o">.</span><span class="n">wires</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">operations</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="a-first-circuit">
+<h2>A first circuit<a class="headerlink" href="#a-first-circuit" title="Permalink to this heading">¶</a></h2>
+<p>A Hadamard, an <span class="math notranslate nohighlight">\(R_X\)</span>, two CNOTs and an <span class="math notranslate nohighlight">\(R_Z\)</span> on three qubits.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_wires</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">first_circuit</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">Hadamard</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">RX</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">RZ</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">probs</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+
+
+<span class="n">reference_qnode</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">first_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"default.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">reference_qnode</span><span class="p">)(</span><span class="n">angles</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0: ──H────────╭●────┤ ╭Probs
+1: ──RX(0.30)─╰X─╭●─┤ ├Probs
+2: ──RZ(0.70)────╰X─┤ ╰Probs
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">translate_to_matchgates</span></code> is a PennyLane transform. Applied to a QNode, it replaces every operation by its translation;
+<code class="docutils literal notranslate"><span class="pre">level=&quot;user&quot;</span></code> draws the circuit after the transform. Every gate becomes one or several <code class="docutils literal notranslate"><span class="pre">MatchgateOperation</span></code>s on
+neighbouring wires.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">karaoke_qnode</span> <span class="o">=</span> <span class="n">mk</span><span class="o">.</span><span class="n">translate_to_matchgates</span><span class="p">(</span><span class="n">reference_qnode</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">karaoke_qnode</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">show_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">angles</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0: ─╭MatchgateOperation(M0)─────────────────────────╭MatchgateOperation(M2) ···
+1: ─╰MatchgateOperation(M0)─╭MatchgateOperation(M1)─╰MatchgateOperation(M2) ···
+2: ─────────────────────────╰MatchgateOperation(M1)──────────────────────── ···
+
+0: ··· ─╭MatchgateOperation(M3)─╭MatchgateOperation(M4)──────────────────────── ···
+1: ··· ─╰MatchgateOperation(M3)─╰MatchgateOperation(M4)─╭MatchgateOperation(M4) ···
+2: ··· ─────────────────────────────────────────────────╰MatchgateOperation(M4) ···
+
+0: ··· ─╭MatchgateOperation(M5)──────────────────────────────────────────────── ···
+1: ··· ─╰MatchgateOperation(M5)─╭MatchgateOperation(M6)─╭MatchgateOperation(M2) ···
+2: ··· ─────────────────────────╰MatchgateOperation(M6)─╰MatchgateOperation(M2) ···
+
+0: ··· ──────────────────────────────────────────────────────────────────────── ···
+1: ··· ─╭MatchgateOperation(M3)─╭MatchgateOperation(M4)─╭MatchgateOperation(M4) ···
+2: ··· ─╰MatchgateOperation(M3)─╰MatchgateOperation(M4)─╰MatchgateOperation(M4) ···
+
+0: ··· ─────────────────────────┤ ╭Probs
+1: ··· ─╭MatchgateOperation(M5)─┤ ├Probs
+2: ··· ─╰MatchgateOperation(M5)─┤ ╰Probs
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> device applies the same translation before simulating the circuit with <code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code>. Its probabilities
+match those of the translated circuit run on <code class="docutils literal notranslate"><span class="pre">default.qubit</span></code>, and differ from those of the original circuit, since the
+Hadamard, the <span class="math notranslate nohighlight">\(R_X\)</span> and the rotations of the Mølmer–Sørensen form are not diagonal.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mk_device</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">mk_device</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> registered as </span><span class="si">{</span><span class="n">mk_device</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">mk_qnode</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">first_circuit</span><span class="p">,</span> <span class="n">mk_device</span><span class="p">)</span>
+
+<span class="n">original_probs</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">reference_qnode</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span>
+<span class="n">translated_probs</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">karaoke_qnode</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span>
+<span class="n">mk_probs</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">mk_qnode</span><span class="p">(</span><span class="n">angles</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"state  original  translated (default.qubit)  mk.qubit"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_wires</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"|</span><span class="si">{</span><span class="n">index</span><span class="si">:</span><span class="s2">0</span><span class="si">{</span><span class="n">n_wires</span><span class="si">}</span><span class="s2">b</span><span class="si">}</span><span class="s2">&gt;   </span><span class="si">{</span><span class="n">original_probs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">    </span><span class="si">{</span><span class="n">translated_probs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"                      </span><span class="si">{</span><span class="n">mk_probs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TVD(mk.qubit, translated) = </span><span class="si">{</span><span class="n">total_variation_distance</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">,</span><span class="w"> </span><span class="n">translated_probs</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TVD(mk.qubit, original)   = </span><span class="si">{</span><span class="n">total_variation_distance</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">,</span><span class="w"> </span><span class="n">original_probs</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>MajoranaKaraokeDevice registered as 'mk.qubit'
+state  original  translated (default.qubit)  mk.qubit
+|000&gt;   0.4888    0.3239                      0.3239
+|001&gt;   0.0000    0.0000                      0.0000
+|010&gt;   0.0000    0.0000                      0.0000
+|011&gt;   0.0112    0.1761                      0.1761
+|100&gt;   0.0112    0.0000                      0.0000
+|101&gt;   0.0000    0.1761                      0.1761
+|110&gt;   0.0000    0.3239                      0.3239
+|111&gt;   0.4888    0.0000                      0.0000
+TVD(mk.qubit, translated) = 3.4e-16
+TVD(mk.qubit, original)   = 0.665
+</pre></div>
+</div>
+</div>
+</div>
+<p>Here <span class="math notranslate nohighlight">\(\mathrm{TVD}(p, q) = \frac{1}{2}\sum_x |p(x) - q(x)|\)</span> is the total variation distance, between <span class="math notranslate nohighlight">\(0\)</span> (identical
+distributions) and <span class="math notranslate nohighlight">\(1\)</span> (disjoint supports).</p>
+</section>
+<section id="one-operation-at-a-time">
+<h2>One operation at a time<a class="headerlink" href="#one-operation-at-a-time" title="Permalink to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MatchgateTranslator</span></code> holds the rules. Its <code class="docutils literal notranslate"><span class="pre">translate</span></code> method returns the operations replacing a single operation, given
+the wires of the device.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">translator</span> <span class="o">=</span> <span class="n">mk</span><span class="o">.</span><span class="n">MatchgateTranslator</span><span class="p">()</span>
+<span class="n">three_wires</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">Hadamard</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">RZ</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">IsingXY</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">IsingXX</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">SWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">GlobalPhase</span><span class="p">(</span><span class="mf">0.3</span><span class="p">),</span>
+<span class="p">]:</span>
+    <span class="n">translated_ops</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">three_wires</span><span class="p">)</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">describe</span><span class="p">(</span><span class="n">translated_ops</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">translated_ops</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">5</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">translated_ops</span><span class="p">)</span><span class="si">}</span><span class="s2"> operations"</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">summary</span> <span class="ow">or</span> <span class="s2">"dropped"</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="n">op</span><span class="o">.</span><span class="n">wires</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SWAP[1, 2] is decomposed into </span><span class="si">{</span><span class="n">describe</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">SWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">decomposition</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Hadamard[0] -&gt; MatchgateOperation[0, 1]
+RZ[2] -&gt; MatchgateOperation[1, 2]
+IsingXY[0, 1] -&gt; MatchgateOperation[0, 1]
+IsingXX[0, 2] -&gt; fSWAP[1, 2], MatchgateOperation[0, 1], fSWAP[1, 2]
+CNOT[0, 1] -&gt; MatchgateOperation[0, 1], MatchgateOperation[0, 1], MatchgateOperation[0, 1], MatchgateOperation[1, 2], MatchgateOperation[0, 1]
+SWAP[1, 2] -&gt; 15 operations
+GlobalPhase[] -&gt; dropped
+SWAP[1, 2] is decomposed into CNOT[1, 2], CNOT[2, 1], CNOT[1, 2]
+</pre></div>
+</div>
+</div>
+</div>
+<p>The single-qubit gate on the last wire is dressed on <span class="math notranslate nohighlight">\((1, 2)\)</span>, the distant <code class="docutils literal notranslate"><span class="pre">IsingXX</span></code> is surrounded by <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code>s, the
+CNOT becomes five matchgates, the SWAP, which is not a matchgate, is decomposed into three CNOTs of five matchgates
+each, and the global phase is dropped.</p>
+<p>The dressing of a single-qubit gate <span class="math notranslate nohighlight">\(G\)</span> is <span class="math notranslate nohighlight">\(\mathrm{CNOT}\,(G \otimes I)\,\mathrm{CNOT}\)</span>, which equals <span class="math notranslate nohighlight">\(G \otimes I\)</span>
+only for diagonal gates, and <span class="math notranslate nohighlight">\(\mathrm{CNOT}_{1,0}\,(I \otimes G)\,\mathrm{CNOT}_{1,0}\)</span> on the last wire:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">two_wires</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">cnot</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+<span class="n">reversed_cnot</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">two_wires</span><span class="p">)</span>
+<span class="n">identity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">[</span><span class="n">qml</span><span class="o">.</span><span class="n">Hadamard</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">qml</span><span class="o">.</span><span class="n">RX</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">qml</span><span class="o">.</span><span class="n">RZ</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">qml</span><span class="o">.</span><span class="n">T</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">)]:</span>
+    <span class="n">dressed</span> <span class="o">=</span> <span class="n">operations_matrix</span><span class="p">(</span><span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">two_wires</span><span class="p">),</span> <span class="n">two_wires</span><span class="p">)</span>
+    <span class="n">gate_matrix</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">gate</span><span class="o">.</span><span class="n">name</span><span class="si">:</span><span class="s2">8s</span><span class="si">}</span><span class="s2"> |M(G,G) - CNOT (G x I) CNOT| = "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">dressed</span><span class="p">,</span><span class="w"> </span><span class="n">cnot</span><span class="w"> </span><span class="o">@</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">gate_matrix</span><span class="p">,</span><span class="w"> </span><span class="n">identity</span><span class="p">)</span><span class="w"> </span><span class="o">@</span><span class="w"> </span><span class="n">cnot</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"    |M(G,G) - G x I| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">dressed</span><span class="p">,</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">gate_matrix</span><span class="p">,</span><span class="w"> </span><span class="n">identity</span><span class="p">))</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span>
+
+<span class="n">last_wire_gate</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">Hadamard</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">dressed</span> <span class="o">=</span> <span class="n">operations_matrix</span><span class="p">(</span><span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">last_wire_gate</span><span class="p">,</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">two_wires</span><span class="p">),</span> <span class="n">two_wires</span><span class="p">)</span>
+<span class="n">expected</span> <span class="o">=</span> <span class="n">reversed_cnot</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">identity</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">last_wire_gate</span><span class="p">))</span> <span class="o">@</span> <span class="n">reversed_cnot</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hadamard on the last wire: |M(H,XHX) - CNOT_10 (I x H) CNOT_10| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">dressed</span><span class="p">,</span><span class="w"> </span><span class="n">expected</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Hadamard |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 7.1e-01
+RX       |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 3.4e-01
+RZ       |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 0.0e+00
+T        |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 0.0e+00
+Hadamard on the last wire: |M(H,XHX) - CNOT_10 (I x H) CNOT_10| = 0.0e+00
+</pre></div>
+</div>
+</div>
+</div>
+<p>The Mølmer–Sørensen operations multiply to <span class="math notranslate nohighlight">\(e^{i\pi/4}\,\mathrm{CNOT}\)</span>. Their rotations are not diagonal, so once they
+are dressed the translated CNOT is no longer a CNOT, even up to a global phase: <span class="math notranslate nohighlight">\(|\mathrm{Tr}(\mathrm{CNOT}^\dagger V)|/4\)</span>
+would be <span class="math notranslate nohighlight">\(1\)</span> if it were.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">molmer_sorensen</span> <span class="o">=</span> <span class="n">mk</span><span class="o">.</span><span class="n">MatchgateTranslator</span><span class="o">.</span><span class="n">cnot_to_molmer_sorensen</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">describe</span><span class="p">(</span><span class="n">molmer_sorensen</span><span class="p">))</span>
+<span class="n">molmer_sorensen_matrix</span> <span class="o">=</span> <span class="n">operations_matrix</span><span class="p">(</span><span class="n">molmer_sorensen</span><span class="p">,</span> <span class="n">two_wires</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"|MS - e^(i pi/4) CNOT| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">molmer_sorensen_matrix</span><span class="p">,</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cnot</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">translated_cnot</span> <span class="o">=</span> <span class="n">operations_matrix</span><span class="p">(</span><span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">two_wires</span><span class="p">),</span> <span class="n">two_wires</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"|Tr(CNOT^dagger V)| / 4 = </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">cnot</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="w"> </span><span class="o">@</span><span class="w"> </span><span class="n">translated_cnot</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>RY[0], IsingXX[0, 1], RX[0], RX[1], RY[0]
+|MS - e^(i pi/4) CNOT| = 1.8e-16
+|Tr(CNOT^dagger V)| / 4 = 0.500
+</pre></div>
+</div>
+</div>
+</div>
+<p>A matchgate on distant wires is routed with <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code>s. For <code class="docutils literal notranslate"><span class="pre">IsingXX</span></code> on <span class="math notranslate nohighlight">\((0, 2)\)</span>, the result is
+<span class="math notranslate nohighlight">\(e^{-i\frac{\theta}{2} X_0 Z_1 X_2}\)</span>, where <span class="math notranslate nohighlight">\(X_0 Z_1 X_2 = -i\gamma_1 \gamma_4\)</span> is a bilinear in the Majorana operators of the modes <span class="math notranslate nohighlight">\(0\)</span>
+and <span class="math notranslate nohighlight">\(2\)</span>, and not the qubit gate <span class="math notranslate nohighlight">\(e^{-i\frac{\theta}{2} X_0 X_2}\)</span>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">theta</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">routed</span> <span class="o">=</span> <span class="n">operations_matrix</span><span class="p">(</span><span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">IsingXX</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">three_wires</span><span class="p">),</span> <span class="n">three_wires</span><span class="p">)</span>
+<span class="n">fermionic</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">PauliRot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s2">"XZX"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">three_wires</span><span class="p">))</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">IsingXX</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="n">three_wires</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"|routed - exp(-i theta/2 X0 Z1 X2)| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">routed</span><span class="p">,</span><span class="w"> </span><span class="n">fermionic</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"|routed - IsingXX on (0, 2)|        = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">routed</span><span class="p">,</span><span class="w"> </span><span class="n">qubit</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>|routed - exp(-i theta/2 X0 Z1 X2)| = 4.4e-16
+|routed - IsingXX on (0, 2)|        = 0.870
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="exact-on-the-free-fermion-subset">
+<h2>Exact on the free-fermion subset<a class="headerlink" href="#exact-on-the-free-fermion-subset" title="Permalink to this heading">¶</a></h2>
+<p>A circuit made of matchgates on neighbouring wires (<code class="docutils literal notranslate"><span class="pre">IsingXX</span></code>, <code class="docutils literal notranslate"><span class="pre">IsingXY</span></code>, <code class="docutils literal notranslate"><span class="pre">IsingYY</span></code>, <code class="docutils literal notranslate"><span class="pre">SingleExcitation</span></code>) and diagonal
+single-qubit gates (<span class="math notranslate nohighlight">\(R_Z\)</span>, <span class="math notranslate nohighlight">\(S\)</span>, <span class="math notranslate nohighlight">\(T\)</span>, phase shifts), applied to a basis state, is translated exactly: <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> gives the
+same probabilities as <code class="docutils literal notranslate"><span class="pre">default.qubit</span></code> on the original circuit. Each operation is translated into a single operation.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_wires</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">free_fermion_params</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_wires</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">free_fermion_circuit</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">BasisState</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">wire</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_wires</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">IsingXX</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="n">wire</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">IsingXY</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="n">wire</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">wire</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_wires</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">SingleExcitation</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="n">wire</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">IsingYY</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="n">wire</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">wire</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">):</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">RZ</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="n">wire</span><span class="p">)</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">PhaseShift</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="n">wire</span><span class="p">)</span>
+        <span class="n">qml</span><span class="o">.</span><span class="n">S</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">qml</span><span class="o">.</span><span class="n">T</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">probs</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+
+
+<span class="n">free_fermion_reference</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">free_fermion_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"default.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+<span class="n">free_fermion_mk</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">free_fermion_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+
+<span class="n">original_ops</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">construct_batch</span><span class="p">(</span><span class="n">free_fermion_reference</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"top"</span><span class="p">)(</span><span class="n">free_fermion_params</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">operations</span>
+<span class="n">translated_ops</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">construct_batch</span><span class="p">(</span><span class="n">free_fermion_mk</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"device"</span><span class="p">)(</span><span class="n">free_fermion_params</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">operations</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">original_ops</span><span class="p">)</span><span class="si">}</span><span class="s2"> operations translated into </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">translated_ops</span><span class="p">)</span><span class="si">}</span><span class="s2"> operations"</span><span class="p">)</span>
+
+<span class="n">reference_probs</span> <span class="o">=</span> <span class="n">free_fermion_reference</span><span class="p">(</span><span class="n">free_fermion_params</span><span class="p">)</span>
+<span class="n">karaoke_probs</span> <span class="o">=</span> <span class="n">free_fermion_mk</span><span class="p">(</span><span class="n">free_fermion_params</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max |p_mk.qubit - p_default.qubit| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">karaoke_probs</span><span class="p">,</span><span class="w"> </span><span class="n">reference_probs</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>73 operations translated into 73 operations
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>max |p_mk.qubit - p_default.qubit| = 5.1e-16
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="a-generic-circuit">
+<h2>A generic circuit<a class="headerlink" href="#a-generic-circuit" title="Permalink to this heading">¶</a></h2>
+<p>An <code class="docutils literal notranslate"><span class="pre">AngleEmbedding</span></code> followed by two <code class="docutils literal notranslate"><span class="pre">StronglyEntanglingLayers</span></code> on four qubits uses <span class="math notranslate nohighlight">\(R_X\)</span> gates, general rotations and
+CNOTs between distant wires. The translation is a different circuit: <code class="docutils literal notranslate"><span class="pre">mk.qubit</span></code> still agrees with <code class="docutils literal notranslate"><span class="pre">default.qubit</span></code> running
+the translated operations, but both are far from the original circuit.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_wires</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">weights_shape</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">StronglyEntanglingLayers</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="n">features</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="n">weights</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">weights_shape</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">generic_circuit</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">AngleEmbedding</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">StronglyEntanglingLayers</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">probs</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+
+
+<span class="n">generic_reference</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">generic_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"default.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+<span class="n">generic_translated</span> <span class="o">=</span> <span class="n">mk</span><span class="o">.</span><span class="n">translate_to_matchgates</span><span class="p">(</span><span class="n">generic_reference</span><span class="p">)</span>
+<span class="n">generic_mk</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">generic_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+
+<span class="n">original_probs</span> <span class="o">=</span> <span class="n">generic_reference</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+<span class="n">translated_probs</span> <span class="o">=</span> <span class="n">generic_translated</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+<span class="n">mk_probs</span> <span class="o">=</span> <span class="n">generic_mk</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max |p_mk.qubit - p_translated| = </span><span class="si">{</span><span class="n">max_abs_difference</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">,</span><span class="w"> </span><span class="n">translated_probs</span><span class="p">)</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TVD(mk.qubit, original)         = </span><span class="si">{</span><span class="n">total_variation_distance</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">,</span><span class="w"> </span><span class="n">original_probs</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>max |p_mk.qubit - p_translated| = 2.2e-16
+TVD(mk.qubit, original)         = 0.541
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bitstrings</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">index</span><span class="si">:</span><span class="s2">0</span><span class="si">{</span><span class="n">n_wires</span><span class="si">}</span><span class="s2">b</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_wires</span><span class="p">)]</span>
+<span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="n">bar_width</span> <span class="o">=</span> <span class="mf">0.4</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">positions</span> <span class="o">-</span> <span class="n">bar_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">original_probs</span><span class="p">),</span> <span class="n">bar_width</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#2a78d6"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"original"</span><span class="p">)</span>
+<span class="n">karaoke_label</span> <span class="o">=</span> <span class="s2">"karaoke (mk.qubit)"</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">positions</span> <span class="o">+</span> <span class="n">bar_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">),</span> <span class="n">bar_width</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"#eb6834"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">karaoke_label</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">bitstrings</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Basis state [-]"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Probability [-]"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">"top"</span><span class="p">,</span> <span class="s2">"right"</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/a6596b7d1634b2e9599b78f54b3ef695ea7f1fc45709da112c98256427f97117.png" src="../_images/a6596b7d1634b2e9599b78f54b3ef695ea7f1fc45709da112c98256427f97117.png" />
+</div>
+</div>
+<p>Part of the difference is structural. Matchgates act separately on the even-parity states <span class="math notranslate nohighlight">\(\{|00\rangle, |11\rangle\}\)</span> and
+the odd-parity states <span class="math notranslate nohighlight">\(\{|01\rangle, |10\rangle\}\)</span>, so they conserve the parity of the number of <span class="math notranslate nohighlight">\(1\)</span>s: starting from
+<span class="math notranslate nohighlight">\(|0000\rangle\)</span>, the karaoke version only reaches even-parity states, whereas the original circuit does not. Since the karaoke version puts no weight on odd-parity states, the total
+variation distance is at least the odd-parity probability of the original circuit; the even-parity sector can differ
+as well.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">odd_parity_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_wires</span><span class="p">)</span> <span class="k">if</span> <span class="nb">bin</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"1"</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">original_odd_probability</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">original_probs</span><span class="p">)[</span><span class="n">odd_parity_states</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">karaoke_odd_probability</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">mk_probs</span><span class="p">)[</span><span class="n">odd_parity_states</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"odd-parity probability, original: </span><span class="si">{</span><span class="n">original_odd_probability</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"odd-parity probability, karaoke:  </span><span class="si">{</span><span class="n">karaoke_odd_probability</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>odd-parity probability, original: 0.541
+odd-parity probability, karaoke:  8.0e-16
+</pre></div>
+</div>
+</div>
+</div>
+<p>The distance is not specific to these parameters: over random features and weights, it stays large.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">distances</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">seed_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">seed_features</span> <span class="o">=</span> <span class="n">seed_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+    <span class="n">seed_weights</span> <span class="o">=</span> <span class="n">seed_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">weights_shape</span><span class="p">)</span>
+    <span class="n">seed_original_probs</span> <span class="o">=</span> <span class="n">generic_reference</span><span class="p">(</span><span class="n">seed_features</span><span class="p">,</span> <span class="n">seed_weights</span><span class="p">)</span>
+    <span class="n">distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total_variation_distance</span><span class="p">(</span><span class="n">generic_mk</span><span class="p">(</span><span class="n">seed_features</span><span class="p">,</span> <span class="n">seed_weights</span><span class="p">),</span> <span class="n">seed_original_probs</span><span class="p">))</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"min </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, mean </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TVD(mk.qubit, original) over </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span><span class="si">}</span><span class="s2"> draws: </span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TVD(mk.qubit, original) over 10 draws: min 0.541, mean 0.665, max 0.764
+</pre></div>
+</div>
+</div>
+</div>
+<p>The karaoke version of a generic circuit is a different model, not an approximation with a controlled error. It is a
+parametrized model that <code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code> simulates efficiently, as the last section shows.</p>
+</section>
+<section id="custom-rules">
+<h2>Custom rules<a class="headerlink" href="#custom-rules" title="Permalink to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MatchgateTranslator(rules=...)</span></code> takes rules indexed by operation name; they take precedence over the default ones. By
+default, a SWAP is decomposed into three CNOTs, each translated into five matchgates. The fermionic swap <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code> is a
+matchgate that differs from the SWAP only by a sign on <span class="math notranslate nohighlight">\(|11\rangle\)</span>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">fSWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])))))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[[ 1.  0.  0.  0.]
+ [ 0.  0.  1.  0.]
+ [ 0.  1.  0.  0.]
+ [ 0.  0.  0. -1.]]
+</pre></div>
+</div>
+</div>
+</div>
+<p>A rule replacing every SWAP by an <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code> is therefore exact on states where the two wires are never both in
+<span class="math notranslate nohighlight">\(|1\rangle\)</span>, such as a single excitation hopping along the chain. <code class="docutils literal notranslate"><span class="pre">fSWAP</span></code> acts on neighbouring wires only, so this rule is
+meant for SWAPs between neighbours.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fswap_translator</span> <span class="o">=</span> <span class="n">mk</span><span class="o">.</span><span class="n">MatchgateTranslator</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">{</span><span class="s2">"SWAP"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="p">[</span><span class="n">fSWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">wires</span><span class="p">)]})</span>
+<span class="n">default_swap</span> <span class="o">=</span> <span class="n">translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">SWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">custom_swap</span> <span class="o">=</span> <span class="n">fswap_translator</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">SWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">wire_order</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"default rules: SWAP[1, 2] -&gt; </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">default_swap</span><span class="p">)</span><span class="si">}</span><span class="s2"> operations"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"custom rule:   SWAP[1, 2] -&gt; </span><span class="si">{</span><span class="n">describe</span><span class="p">(</span><span class="n">custom_swap</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>default rules: SWAP[1, 2] -&gt; 15 operations
+custom rule:   SWAP[1, 2] -&gt; fSWAP[1, 2]
+</pre></div>
+</div>
+</div>
+</div>
+<p>The translator is passed to the device with the <code class="docutils literal notranslate"><span class="pre">translator</span></code> keyword. On a single-excitation circuit with SWAPs, the
+custom rule gives the exact probabilities and the default rules do not.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_wires</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">hopping_angles</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_wires</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">single_excitation_circuit</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">BasisState</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">angles</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">wire</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">SingleExcitation</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="n">wire</span><span class="p">,</span> <span class="n">wire</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">qml</span><span class="o">.</span><span class="n">SWAP</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">wire</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">):</span>
+            <span class="n">qml</span><span class="o">.</span><span class="n">PhaseShift</span><span class="p">(</span><span class="n">layer</span><span class="p">[</span><span class="n">wire</span><span class="p">],</span> <span class="n">wires</span><span class="o">=</span><span class="n">wire</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">probs</span><span class="p">(</span><span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+
+
+<span class="n">hopping_reference</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">single_excitation_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"default.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+<span class="n">hopping_default</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span><span class="n">single_excitation_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">))</span>
+<span class="n">hopping_custom</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">QNode</span><span class="p">(</span>
+    <span class="n">single_excitation_circuit</span><span class="p">,</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">,</span> <span class="n">translator</span><span class="o">=</span><span class="n">fswap_translator</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">reference_probs</span> <span class="o">=</span> <span class="n">hopping_reference</span><span class="p">(</span><span class="n">hopping_angles</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">qnode</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">"default rules"</span><span class="p">,</span> <span class="n">hopping_default</span><span class="p">),</span> <span class="p">(</span><span class="s2">"custom rule  "</span><span class="p">,</span> <span class="n">hopping_custom</span><span class="p">)]:</span>
+    <span class="n">n_ops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">construct_batch</span><span class="p">(</span><span class="n">qnode</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"device"</span><span class="p">)(</span><span class="n">hopping_angles</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">operations</span><span class="p">)</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">total_variation_distance</span><span class="p">(</span><span class="n">qnode</span><span class="p">(</span><span class="n">hopping_angles</span><span class="p">),</span> <span class="n">reference_probs</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">n_ops</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2"> operations, TVD to the original = </span><span class="si">{</span><span class="n">distance</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>default rules: 45 operations, TVD to the original = 9.0e-01
+custom rule  : 17 operations, TVD to the original = 9.9e-16
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="scaling-to-40-qubits">
+<h2>Scaling to 40 qubits<a class="headerlink" href="#scaling-to-40-qubits" title="Permalink to this heading">¶</a></h2>
+<p>The state of <code class="docutils literal notranslate"><span class="pre">nif.qubit</span></code> is a <span class="math notranslate nohighlight">\(2n \times 2n\)</span> single-particle transition matrix instead of <span class="math notranslate nohighlight">\(2^n\)</span> amplitudes, so the
+translated circuit runs on 40 qubits where a statevector would not fit in memory. We compute <span class="math notranslate nohighlight">\(\langle Z_0 \rangle\)</span> of
+the karaoke version of the generic circuit above on 40 qubits. This is the expectation value of the matchgate
+counterpart; the original 40-qubit circuit is not computed here.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_wires</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">large_weights_shape</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">StronglyEntanglingLayers</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="n">large_features</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+<span class="n">large_weights</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">large_weights_shape</span><span class="p">)</span>
+<span class="n">large_device</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mk.qubit"</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="n">n_wires</span><span class="p">)</span>
+
+
+<span class="nd">@qml</span><span class="o">.</span><span class="n">qnode</span><span class="p">(</span><span class="n">large_device</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">large_circuit</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">AngleEmbedding</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="n">qml</span><span class="o">.</span><span class="n">StronglyEntanglingLayers</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_wires</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">qml</span><span class="o">.</span><span class="n">expval</span><span class="p">(</span><span class="n">qml</span><span class="o">.</span><span class="n">PauliZ</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">expectation_value</span> <span class="o">=</span> <span class="n">large_circuit</span><span class="p">(</span><span class="n">large_features</span><span class="p">,</span> <span class="n">large_weights</span><span class="p">)</span>
+<span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+<span class="n">large_tape</span> <span class="o">=</span> <span class="n">qml</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">construct_batch</span><span class="p">(</span><span class="n">large_circuit</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"device"</span><span class="p">)(</span><span class="n">large_features</span><span class="p">,</span> <span class="n">large_weights</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">n_matchgates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">large_tape</span><span class="o">.</span><span class="n">operations</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;Z_0&gt; = </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">expectation_value</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">n_matchgates</span><span class="si">}</span><span class="s2"> matchgate operations in </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"nif.qubit state: transition matrix of shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">large_device</span><span class="o">.</span><span class="n">global_sptm</span><span class="o">.</span><span class="n">matrix</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"statevector: 2^</span><span class="si">{</span><span class="n">n_wires</span><span class="si">}</span><span class="s2"> complex128 amplitudes = </span><span class="si">{</span><span class="mi">2</span><span class="o">**</span><span class="n">n_wires</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">16</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="o">**</span><span class="mi">40</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> TiB"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;Z_0&gt; = 0.2986 from 820 matchgate operations in 2.8 s
+nif.qubit state: transition matrix of shape (80, 80)
+statevector: 2^40 complex128 amplitudes = 16 TiB
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.0.1',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+    <script type="text/javascript" src="../static/documentation_options.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../static/sphinx_highlight.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script type="text/javascript" src="../static/js/theme.js"></script>
+  
+    <div class="footer" role="contentinfo">
+        <div class="container">
+            &#169; Copyright 2026, Jérémie Gince.
+        Created using <a href="http://sphinx-doc.org/">Sphinx</a> 6.2.1.
+        </div>
+    </div>  
+
+</body>
+</html>

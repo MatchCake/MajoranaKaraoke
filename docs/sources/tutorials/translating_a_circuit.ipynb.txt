@@ -1,0 +1,1057 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "853b631c",
+   "metadata": {},
+   "source": [
+    "# Translating a circuit into matchgates"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9d8d0e5c",
+   "metadata": {},
+   "source": [
+    "<table class=\"nt-notebook-buttons\" align=\"center\">\n",
+    "  <td>\n",
+    "    <a target=\"_blank\" href=\"https://MatchCake.github.io/MajoranaKaraoke/\">Documentation</a>\n",
+    "  </td>\n",
+    "  <td>\n",
+    "    <a target=\"_blank\" href=\"https://colab.research.google.com/github/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb\">Run in Google Colab</a>\n",
+    "  </td>\n",
+    "  <td>\n",
+    "    <a target=\"_blank\" href=\"https://github.com/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb\">View source on GitHub</a>\n",
+    "  </td>\n",
+    "  <td>\n",
+    "    <a href=\"https://github.com/MatchCake/MajoranaKaraoke/blob/main/tutorials/translating_a_circuit.ipynb?raw=true\">Download notebook</a>\n",
+    "  </td>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "64ae8750",
+   "metadata": {},
+   "source": [
+    "A matchgate is a two-qubit gate acting on neighbouring wires as\n",
+    "\n",
+    "$$\n",
+    "G(A, B) = \\begin{pmatrix} A_{11} & 0 & 0 & A_{12} \\\\ 0 & B_{11} & B_{12} & 0 \\\\ 0 & B_{21} & B_{22} & 0 \\\\ A_{21} & 0 & 0 & A_{22} \\end{pmatrix},\n",
+    "\\qquad \\det A = \\det B .\n",
+    "$$\n",
+    "\n",
+    "Through the Jordan–Wigner transformation, matchgates are free-fermion evolutions, so a circuit made of them is simulated\n",
+    "in polynomial time [1-3], here by MatchCake's `nif.qubit` device. Generic circuits are believed to be hard to simulate\n",
+    "classically: a statevector simulator stores $2^n$ amplitudes.\n",
+    "\n",
+    "`majorana_karaoke` translates any unitary circuit into a matchgate circuit, its *karaoke* version, and simulates it on\n",
+    "`nif.qubit` through the `mk.qubit` device. An `Adjoint` operation, which `qml.adjoint` creates by default, is translated\n",
+    "into the inverse of the translation of its base. MatchCake operations and the state preparations that `nif.qubit`\n",
+    "executes, such as `BasisState` (extended with zeros to every wire), are kept as they are. Every other operation goes\n",
+    "through the first rule that applies:\n",
+    "\n",
+    "1. **Rules by name.** `CNOT` takes its Mølmer–Sørensen form\n",
+    "   $\\mathrm{CNOT}_{c,t} = e^{-i\\pi/4}\\, R_Y^{(c)}(-\\tfrac{\\pi}{2})\\, R_X^{(c)}(-\\tfrac{\\pi}{2})\\, R_X^{(t)}(-\\tfrac{\\pi}{2})\\, \\mathrm{XX}_{c,t}(\\tfrac{\\pi}{2})\\, R_Y^{(c)}(\\tfrac{\\pi}{2})$,\n",
+    "   whose entangling part $\\mathrm{XX}(\\tfrac{\\pi}{2}) = e^{-i\\frac{\\pi}{4} X \\otimes X}$ is a matchgate. `GlobalPhase` and\n",
+    "   `Identity` are dropped. The operations a rule returns are translated in turn.\n",
+    "2. **Matchgates**, that is two-qubit gates that are matchgates for every value of their scalar parameters, such as\n",
+    "   `IsingXX`, `IsingYY`, `IsingXY` or `SingleExcitation`, become a `MatchgateOperation`. On\n",
+    "   distant wires, `fSWAP` gates carry the higher wire next to the lower one and back: the result is the fermionic\n",
+    "   version of the gate, which carries a Jordan–Wigner string $Z$ on the wires in between.\n",
+    "3. **Single-qubit gates.** A gate $G$ on the wire $w$ is dressed into the matchgate\n",
+    "   $M(G, G) = \\mathrm{CNOT}_{w,w+1}\\,(G \\otimes I)\\,\\mathrm{CNOT}_{w,w+1}$ on $(w, w+1)$. On the last wire, it becomes\n",
+    "   $M(G, XGX) = \\mathrm{CNOT}_{w,w-1}\\,(I \\otimes G)\\,\\mathrm{CNOT}_{w,w-1}$ on $(w-1, w)$. The dressed gate acts as $G$\n",
+    "   only when $G$ is diagonal.\n",
+    "4. **Anything else** is decomposed, and its decomposition is translated. An operation with a matrix but no\n",
+    "   decomposition is translated as a `QubitUnitary` of its matrix, with a warning.\n",
+    "\n",
+    "The translation is therefore exact for circuits made of neighbouring matchgates and diagonal single-qubit gates. For any\n",
+    "other circuit, it gives a matchgate counterpart of the circuit, not the circuit itself. This notebook checks each of these\n",
+    "statements numerically.\n",
+    "\n",
+    "[1] L. G. Valiant, *Quantum circuits that can be simulated classically in polynomial time*, SIAM J. Comput. **31**, 1229\n",
+    "(2002).\n",
+    "\n",
+    "[2] B. M. Terhal and D. P. DiVincenzo, *Classical simulation of noninteracting-fermion quantum circuits*, Phys. Rev. A\n",
+    "**65**, 032325 (2002).\n",
+    "\n",
+    "[3] R. Jozsa and A. Miyake, *Matchgates and classical simulation of quantum circuits*, Proc. R. Soc. A **464**, 3089\n",
+    "(2008)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6d64e3bd",
+   "metadata": {},
+   "source": [
+    "## Setup"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "67799b34",
+   "metadata": {},
+   "source": [
+    "Install the package if needed, for example in Google Colab, by uncommenting the line below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "e00fe5f5",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:55.560427Z",
+     "iopub.status.busy": "2026-10-07T17:24:55.559959Z",
+     "iopub.status.idle": "2026-10-07T17:24:55.580087Z",
+     "shell.execute_reply": "2026-10-07T17:24:55.577633Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# @title Install dependencies {display-mode: \"form\"}\n",
+    "\n",
+    "# !pip install git+https://github.com/MatchCake/MajoranaKaraoke"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "37992d59",
+   "metadata": {},
+   "source": [
+    "## Imports\n",
+    "\n",
+    "We use PennyLane to write circuits, `default.qubit` as the statevector reference and `mk.qubit` (or equivalently\n",
+    "`majorana_karaoke.MajoranaKaraokeDevice`) to run their matchgate translation. A few helpers compare the results."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "b1da6676",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:55.585214Z",
+     "iopub.status.busy": "2026-10-07T17:24:55.584698Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.062705Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.060489Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import time\n",
+    "from typing import Sequence\n",
+    "\n",
+    "import matplotlib.pyplot as plt\n",
+    "import numpy as np\n",
+    "import pennylane as qml\n",
+    "from matchcake.operations import fSWAP\n",
+    "from pennylane.operation import Operator\n",
+    "from pennylane.typing import TensorLike\n",
+    "\n",
+    "import majorana_karaoke as mk\n",
+    "\n",
+    "\n",
+    "def total_variation_distance(probs: TensorLike, other_probs: TensorLike) -> float:\n",
+    "    \"\"\"\n",
+    "    Total variation distance between two probability distributions.\n",
+    "\n",
+    "    :param probs: The first distribution.\n",
+    "    :param other_probs: The second distribution.\n",
+    "    :return: Half of the l1 distance between the two distributions, between 0 (identical) and 1 (disjoint).\n",
+    "    \"\"\"\n",
+    "    return 0.5 * float(np.sum(np.abs(qml.math.to_numpy(probs) - qml.math.to_numpy(other_probs))))\n",
+    "\n",
+    "\n",
+    "def max_abs_difference(array: TensorLike, other_array: TensorLike) -> float:\n",
+    "    \"\"\"\n",
+    "    Largest absolute difference between the entries of two arrays.\n",
+    "\n",
+    "    :param array: The first array.\n",
+    "    :param other_array: The second array.\n",
+    "    :return: The largest absolute difference.\n",
+    "    \"\"\"\n",
+    "    return float(np.max(np.abs(qml.math.to_numpy(array) - qml.math.to_numpy(other_array))))\n",
+    "\n",
+    "\n",
+    "def operations_matrix(operations: Sequence[Operator], wire_order: Sequence[int]) -> np.ndarray:\n",
+    "    \"\"\"\n",
+    "    Unitary matrix of a sequence of operations applied one after the other.\n",
+    "\n",
+    "    :param operations: The operations, in the order they are applied.\n",
+    "    :param wire_order: The wires of the matrix.\n",
+    "    :return: The matrix of the product of the operations.\n",
+    "    \"\"\"\n",
+    "    return qml.math.to_numpy(qml.matrix(qml.tape.QuantumScript(operations), wire_order=wire_order))\n",
+    "\n",
+    "\n",
+    "def describe(operations: Sequence[Operator]) -> str:\n",
+    "    \"\"\"\n",
+    "    Short description of a sequence of operations: their names and wires.\n",
+    "\n",
+    "    :param operations: The operations to describe.\n",
+    "    :return: The comma-separated names and wires of the operations.\n",
+    "    \"\"\"\n",
+    "    return \", \".join(f\"{op.name}{op.wires.tolist()}\" for op in operations)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7e1b87ff",
+   "metadata": {},
+   "source": [
+    "## A first circuit\n",
+    "\n",
+    "A Hadamard, an $R_X$, two CNOTs and an $R_Z$ on three qubits."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "8356136d",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.066963Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.066509Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.077021Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.074924Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0: ──H────────╭●────┤ ╭Probs\n",
+      "1: ──RX(0.30)─╰X─╭●─┤ ├Probs\n",
+      "2: ──RZ(0.70)────╰X─┤ ╰Probs\n"
+     ]
+    }
+   ],
+   "source": [
+    "n_wires = 3\n",
+    "angles = np.array([0.3, 0.7])\n",
+    "\n",
+    "\n",
+    "def first_circuit(angles):\n",
+    "    qml.Hadamard(wires=0)\n",
+    "    qml.RX(angles[0], wires=1)\n",
+    "    qml.CNOT(wires=[0, 1])\n",
+    "    qml.RZ(angles[1], wires=2)\n",
+    "    qml.CNOT(wires=[1, 2])\n",
+    "    return qml.probs(wires=range(n_wires))\n",
+    "\n",
+    "\n",
+    "reference_qnode = qml.QNode(first_circuit, qml.device(\"default.qubit\", wires=n_wires))\n",
+    "print(qml.draw(reference_qnode)(angles))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "202e1ad9",
+   "metadata": {},
+   "source": [
+    "`translate_to_matchgates` is a PennyLane transform. Applied to a QNode, it replaces every operation by its translation;\n",
+    "`level=\"user\"` draws the circuit after the transform. Every gate becomes one or several `MatchgateOperation`s on\n",
+    "neighbouring wires."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "e3ce669b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.081171Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.080948Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.102341Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.100061Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0: ─╭MatchgateOperation(M0)─────────────────────────╭MatchgateOperation(M2) ···\n",
+      "1: ─╰MatchgateOperation(M0)─╭MatchgateOperation(M1)─╰MatchgateOperation(M2) ···\n",
+      "2: ─────────────────────────╰MatchgateOperation(M1)──────────────────────── ···\n",
+      "\n",
+      "0: ··· ─╭MatchgateOperation(M3)─╭MatchgateOperation(M4)──────────────────────── ···\n",
+      "1: ··· ─╰MatchgateOperation(M3)─╰MatchgateOperation(M4)─╭MatchgateOperation(M4) ···\n",
+      "2: ··· ─────────────────────────────────────────────────╰MatchgateOperation(M4) ···\n",
+      "\n",
+      "0: ··· ─╭MatchgateOperation(M5)──────────────────────────────────────────────── ···\n",
+      "1: ··· ─╰MatchgateOperation(M5)─╭MatchgateOperation(M6)─╭MatchgateOperation(M2) ···\n",
+      "2: ··· ─────────────────────────╰MatchgateOperation(M6)─╰MatchgateOperation(M2) ···\n",
+      "\n",
+      "0: ··· ──────────────────────────────────────────────────────────────────────── ···\n",
+      "1: ··· ─╭MatchgateOperation(M3)─╭MatchgateOperation(M4)─╭MatchgateOperation(M4) ···\n",
+      "2: ··· ─╰MatchgateOperation(M3)─╰MatchgateOperation(M4)─╰MatchgateOperation(M4) ···\n",
+      "\n",
+      "0: ··· ─────────────────────────┤ ╭Probs\n",
+      "1: ··· ─╭MatchgateOperation(M5)─┤ ├Probs\n",
+      "2: ··· ─╰MatchgateOperation(M5)─┤ ╰Probs\n"
+     ]
+    }
+   ],
+   "source": [
+    "karaoke_qnode = mk.translate_to_matchgates(reference_qnode)\n",
+    "print(qml.draw(karaoke_qnode, level=\"user\", show_matrices=False)(angles))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fc985a7f",
+   "metadata": {},
+   "source": [
+    "The `mk.qubit` device applies the same translation before simulating the circuit with `nif.qubit`. Its probabilities\n",
+    "match those of the translated circuit run on `default.qubit`, and differ from those of the original circuit, since the\n",
+    "Hadamard, the $R_X$ and the rotations of the Mølmer–Sørensen form are not diagonal."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "ca8ba728",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.106290Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.106090Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.152126Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.150794Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "MajoranaKaraokeDevice registered as 'mk.qubit'\n",
+      "state  original  translated (default.qubit)  mk.qubit\n",
+      "|000>   0.4888    0.3239                      0.3239\n",
+      "|001>   0.0000    0.0000                      0.0000\n",
+      "|010>   0.0000    0.0000                      0.0000\n",
+      "|011>   0.0112    0.1761                      0.1761\n",
+      "|100>   0.0112    0.0000                      0.0000\n",
+      "|101>   0.0000    0.1761                      0.1761\n",
+      "|110>   0.0000    0.3239                      0.3239\n",
+      "|111>   0.4888    0.0000                      0.0000\n",
+      "TVD(mk.qubit, translated) = 3.4e-16\n",
+      "TVD(mk.qubit, original)   = 0.665\n"
+     ]
+    }
+   ],
+   "source": [
+    "mk_device = qml.device(\"mk.qubit\", wires=n_wires)\n",
+    "print(f\"{type(mk_device).__name__} registered as {mk_device.name!r}\")\n",
+    "mk_qnode = qml.QNode(first_circuit, mk_device)\n",
+    "\n",
+    "original_probs = qml.math.to_numpy(reference_qnode(angles))\n",
+    "translated_probs = qml.math.to_numpy(karaoke_qnode(angles))\n",
+    "mk_probs = qml.math.to_numpy(mk_qnode(angles))\n",
+    "\n",
+    "print(\"state  original  translated (default.qubit)  mk.qubit\")\n",
+    "for index in range(2**n_wires):\n",
+    "    print(\n",
+    "        f\"|{index:0{n_wires}b}>   {original_probs[index]:.4f}    {translated_probs[index]:.4f}\"\n",
+    "        f\"                      {mk_probs[index]:.4f}\"\n",
+    "    )\n",
+    "print(f\"TVD(mk.qubit, translated) = {total_variation_distance(mk_probs, translated_probs):.1e}\")\n",
+    "print(f\"TVD(mk.qubit, original)   = {total_variation_distance(mk_probs, original_probs):.3f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1d6bc3b8",
+   "metadata": {},
+   "source": [
+    "Here $\\mathrm{TVD}(p, q) = \\frac{1}{2}\\sum_x |p(x) - q(x)|$ is the total variation distance, between $0$ (identical\n",
+    "distributions) and $1$ (disjoint supports).\n",
+    "\n",
+    "## One operation at a time\n",
+    "\n",
+    "`MatchgateTranslator` holds the rules. Its `translate` method returns the operations replacing a single operation, given\n",
+    "the wires of the device."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "9b14fcfc",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.155570Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.155367Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.180696Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.179342Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Hadamard[0] -> MatchgateOperation[0, 1]\n",
+      "RZ[2] -> MatchgateOperation[1, 2]\n",
+      "IsingXY[0, 1] -> MatchgateOperation[0, 1]\n",
+      "IsingXX[0, 2] -> fSWAP[1, 2], MatchgateOperation[0, 1], fSWAP[1, 2]\n",
+      "CNOT[0, 1] -> MatchgateOperation[0, 1], MatchgateOperation[0, 1], MatchgateOperation[0, 1], MatchgateOperation[1, 2], MatchgateOperation[0, 1]\n",
+      "SWAP[1, 2] -> 15 operations\n",
+      "GlobalPhase[] -> dropped\n",
+      "SWAP[1, 2] is decomposed into CNOT[1, 2], CNOT[2, 1], CNOT[1, 2]\n"
+     ]
+    }
+   ],
+   "source": [
+    "translator = mk.MatchgateTranslator()\n",
+    "three_wires = [0, 1, 2]\n",
+    "for op in [\n",
+    "    qml.Hadamard(wires=0),\n",
+    "    qml.RZ(0.3, wires=2),\n",
+    "    qml.IsingXY(0.3, wires=[0, 1]),\n",
+    "    qml.IsingXX(0.3, wires=[0, 2]),\n",
+    "    qml.CNOT(wires=[0, 1]),\n",
+    "    qml.SWAP(wires=[1, 2]),\n",
+    "    qml.GlobalPhase(0.3),\n",
+    "]:\n",
+    "    translated_ops = translator.translate(op, wire_order=three_wires)\n",
+    "    summary = describe(translated_ops) if len(translated_ops) <= 5 else f\"{len(translated_ops)} operations\"\n",
+    "    summary = summary or \"dropped\"\n",
+    "    print(f\"{op.name}{op.wires.tolist()} -> {summary}\")\n",
+    "print(f\"SWAP[1, 2] is decomposed into {describe(qml.SWAP(wires=[1, 2]).decomposition())}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b0ece9e9",
+   "metadata": {},
+   "source": [
+    "The single-qubit gate on the last wire is dressed on $(1, 2)$, the distant `IsingXX` is surrounded by `fSWAP`s, the\n",
+    "CNOT becomes five matchgates, the SWAP, which is not a matchgate, is decomposed into three CNOTs of five matchgates\n",
+    "each, and the global phase is dropped.\n",
+    "\n",
+    "The dressing of a single-qubit gate $G$ is $\\mathrm{CNOT}\\,(G \\otimes I)\\,\\mathrm{CNOT}$, which equals $G \\otimes I$\n",
+    "only for diagonal gates, and $\\mathrm{CNOT}_{1,0}\\,(I \\otimes G)\\,\\mathrm{CNOT}_{1,0}$ on the last wire:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "caf044bf",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.183592Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.183397Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.196238Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.195098Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Hadamard |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 7.1e-01\n",
+      "RX       |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 3.4e-01\n",
+      "RZ       |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 0.0e+00\n",
+      "T        |M(G,G) - CNOT (G x I) CNOT| = 0.0e+00    |M(G,G) - G x I| = 0.0e+00\n",
+      "Hadamard on the last wire: |M(H,XHX) - CNOT_10 (I x H) CNOT_10| = 0.0e+00\n"
+     ]
+    }
+   ],
+   "source": [
+    "two_wires = [0, 1]\n",
+    "cnot = qml.matrix(qml.CNOT(wires=[0, 1]))\n",
+    "reversed_cnot = qml.matrix(qml.CNOT(wires=[1, 0]), wire_order=two_wires)\n",
+    "identity = np.eye(2)\n",
+    "\n",
+    "for gate in [qml.Hadamard(wires=0), qml.RX(0.7, wires=0), qml.RZ(0.7, wires=0), qml.T(wires=0)]:\n",
+    "    dressed = operations_matrix(translator.translate(gate, wire_order=two_wires), two_wires)\n",
+    "    gate_matrix = qml.matrix(gate)\n",
+    "    print(\n",
+    "        f\"{gate.name:8s} |M(G,G) - CNOT (G x I) CNOT| = \"\n",
+    "        f\"{max_abs_difference(dressed, cnot @ np.kron(gate_matrix, identity) @ cnot):.1e}\"\n",
+    "        f\"    |M(G,G) - G x I| = {max_abs_difference(dressed, np.kron(gate_matrix, identity)):.1e}\"\n",
+    "    )\n",
+    "\n",
+    "last_wire_gate = qml.Hadamard(wires=1)\n",
+    "dressed = operations_matrix(translator.translate(last_wire_gate, wire_order=two_wires), two_wires)\n",
+    "expected = reversed_cnot @ np.kron(identity, qml.matrix(last_wire_gate)) @ reversed_cnot\n",
+    "print(f\"Hadamard on the last wire: |M(H,XHX) - CNOT_10 (I x H) CNOT_10| = {max_abs_difference(dressed, expected):.1e}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9fc91e85",
+   "metadata": {},
+   "source": [
+    "The Mølmer–Sørensen operations multiply to $e^{i\\pi/4}\\,\\mathrm{CNOT}$. Their rotations are not diagonal, so once they\n",
+    "are dressed the translated CNOT is no longer a CNOT, even up to a global phase: $|\\mathrm{Tr}(\\mathrm{CNOT}^\\dagger V)|/4$\n",
+    "would be $1$ if it were."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "48a91a1a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.198923Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.198757Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.209817Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.208586Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "RY[0], IsingXX[0, 1], RX[0], RX[1], RY[0]\n",
+      "|MS - e^(i pi/4) CNOT| = 1.8e-16\n",
+      "|Tr(CNOT^dagger V)| / 4 = 0.500\n"
+     ]
+    }
+   ],
+   "source": [
+    "molmer_sorensen = mk.MatchgateTranslator.cnot_to_molmer_sorensen(qml.CNOT(wires=[0, 1]))\n",
+    "print(describe(molmer_sorensen))\n",
+    "molmer_sorensen_matrix = operations_matrix(molmer_sorensen, two_wires)\n",
+    "print(f\"|MS - e^(i pi/4) CNOT| = {max_abs_difference(molmer_sorensen_matrix, np.exp(1j * np.pi / 4) * cnot):.1e}\")\n",
+    "\n",
+    "translated_cnot = operations_matrix(translator.translate(qml.CNOT(wires=[0, 1]), wire_order=two_wires), two_wires)\n",
+    "print(f\"|Tr(CNOT^dagger V)| / 4 = {abs(np.trace(cnot.conj().T @ translated_cnot)) / 4:.3f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "17ad74a6",
+   "metadata": {},
+   "source": [
+    "A matchgate on distant wires is routed with `fSWAP`s. For `IsingXX` on $(0, 2)$, the result is\n",
+    "$e^{-i\\frac{\\theta}{2} X_0 Z_1 X_2}$, where $X_0 Z_1 X_2 = -i\\gamma_1 \\gamma_4$ is a bilinear in the Majorana operators of the modes $0$\n",
+    "and $2$, and not the qubit gate $e^{-i\\frac{\\theta}{2} X_0 X_2}$:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "6b6ae902",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.213048Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.212857Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.220844Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.219378Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "|routed - exp(-i theta/2 X0 Z1 X2)| = 4.4e-16\n",
+      "|routed - IsingXX on (0, 2)|        = 0.870\n"
+     ]
+    }
+   ],
+   "source": [
+    "theta = 0.9\n",
+    "routed = operations_matrix(translator.translate(qml.IsingXX(theta, wires=[0, 2]), wire_order=three_wires), three_wires)\n",
+    "fermionic = qml.matrix(qml.PauliRot(theta, \"XZX\", wires=three_wires))\n",
+    "qubit = qml.matrix(qml.IsingXX(theta, wires=[0, 2]), wire_order=three_wires)\n",
+    "print(f\"|routed - exp(-i theta/2 X0 Z1 X2)| = {max_abs_difference(routed, fermionic):.1e}\")\n",
+    "print(f\"|routed - IsingXX on (0, 2)|        = {max_abs_difference(routed, qubit):.3f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "967ed92b",
+   "metadata": {},
+   "source": [
+    "## Exact on the free-fermion subset\n",
+    "\n",
+    "A circuit made of matchgates on neighbouring wires (`IsingXX`, `IsingXY`, `IsingYY`, `SingleExcitation`) and diagonal\n",
+    "single-qubit gates ($R_Z$, $S$, $T$, phase shifts), applied to a basis state, is translated exactly: `mk.qubit` gives the\n",
+    "same probabilities as `default.qubit` on the original circuit. Each operation is translated into a single operation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "56ce77b4",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.224268Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.224082Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.436674Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.434359Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "73 operations translated into 73 operations\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "max |p_mk.qubit - p_default.qubit| = 5.1e-16\n"
+     ]
+    }
+   ],
+   "source": [
+    "n_wires = 6\n",
+    "rng = np.random.default_rng(42)\n",
+    "free_fermion_params = rng.uniform(0, 2 * np.pi, size=(3, n_wires, 4))\n",
+    "\n",
+    "\n",
+    "def free_fermion_circuit(params):\n",
+    "    qml.BasisState(np.array([1, 0, 1, 1, 0, 0]), wires=range(n_wires))\n",
+    "    for layer in params:\n",
+    "        for wire in range(0, n_wires - 1, 2):\n",
+    "            qml.IsingXX(layer[wire, 0], wires=[wire, wire + 1])\n",
+    "            qml.IsingXY(layer[wire, 1], wires=[wire, wire + 1])\n",
+    "        for wire in range(1, n_wires - 1, 2):\n",
+    "            qml.SingleExcitation(layer[wire, 2], wires=[wire, wire + 1])\n",
+    "            qml.IsingYY(layer[wire, 3], wires=[wire, wire + 1])\n",
+    "        for wire in range(n_wires):\n",
+    "            qml.RZ(layer[wire, 0], wires=wire)\n",
+    "            qml.PhaseShift(layer[wire, 1], wires=wire)\n",
+    "        qml.S(wires=0)\n",
+    "        qml.T(wires=n_wires - 1)\n",
+    "    return qml.probs(wires=range(n_wires))\n",
+    "\n",
+    "\n",
+    "free_fermion_reference = qml.QNode(free_fermion_circuit, qml.device(\"default.qubit\", wires=n_wires))\n",
+    "free_fermion_mk = qml.QNode(free_fermion_circuit, qml.device(\"mk.qubit\", wires=n_wires))\n",
+    "\n",
+    "original_ops = qml.workflow.construct_batch(free_fermion_reference, level=\"top\")(free_fermion_params)[0][0].operations\n",
+    "translated_ops = qml.workflow.construct_batch(free_fermion_mk, level=\"device\")(free_fermion_params)[0][0].operations\n",
+    "print(f\"{len(original_ops)} operations translated into {len(translated_ops)} operations\")\n",
+    "\n",
+    "reference_probs = free_fermion_reference(free_fermion_params)\n",
+    "karaoke_probs = free_fermion_mk(free_fermion_params)\n",
+    "print(f\"max |p_mk.qubit - p_default.qubit| = {max_abs_difference(karaoke_probs, reference_probs):.1e}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "969442df",
+   "metadata": {},
+   "source": [
+    "## A generic circuit\n",
+    "\n",
+    "An `AngleEmbedding` followed by two `StronglyEntanglingLayers` on four qubits uses $R_X$ gates, general rotations and\n",
+    "CNOTs between distant wires. The translation is a different circuit: `mk.qubit` still agrees with `default.qubit` running\n",
+    "the translated operations, but both are far from the original circuit."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "e28ccf02",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.441261Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.440659Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.677811Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.676337Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "max |p_mk.qubit - p_translated| = 2.2e-16\n",
+      "TVD(mk.qubit, original)         = 0.541\n"
+     ]
+    }
+   ],
+   "source": [
+    "n_wires = 4\n",
+    "rng = np.random.default_rng(0)\n",
+    "weights_shape = qml.StronglyEntanglingLayers.shape(n_layers=2, n_wires=n_wires)\n",
+    "features = rng.uniform(0, np.pi, size=n_wires)\n",
+    "weights = rng.uniform(0, 2 * np.pi, size=weights_shape)\n",
+    "\n",
+    "\n",
+    "def generic_circuit(features, weights):\n",
+    "    qml.AngleEmbedding(features, wires=range(n_wires))\n",
+    "    qml.StronglyEntanglingLayers(weights, wires=range(n_wires))\n",
+    "    return qml.probs(wires=range(n_wires))\n",
+    "\n",
+    "\n",
+    "generic_reference = qml.QNode(generic_circuit, qml.device(\"default.qubit\", wires=n_wires))\n",
+    "generic_translated = mk.translate_to_matchgates(generic_reference)\n",
+    "generic_mk = qml.QNode(generic_circuit, qml.device(\"mk.qubit\", wires=n_wires))\n",
+    "\n",
+    "original_probs = generic_reference(features, weights)\n",
+    "translated_probs = generic_translated(features, weights)\n",
+    "mk_probs = generic_mk(features, weights)\n",
+    "print(f\"max |p_mk.qubit - p_translated| = {max_abs_difference(mk_probs, translated_probs):.1e}\")\n",
+    "print(f\"TVD(mk.qubit, original)         = {total_variation_distance(mk_probs, original_probs):.3f}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "3867dc15",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.681079Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.680779Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.875841Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.872463Z"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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",
+      "text/plain": [
+       "<Figure size 640x240 with 1 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "bitstrings = [f\"{index:0{n_wires}b}\" for index in range(2**n_wires)]\n",
+    "positions = np.arange(2**n_wires)\n",
+    "bar_width = 0.4\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(8, 3), dpi=80)\n",
+    "ax.bar(positions - bar_width / 2, qml.math.to_numpy(original_probs), bar_width * 0.9, color=\"#2a78d6\", label=\"original\")\n",
+    "karaoke_label = \"karaoke (mk.qubit)\"\n",
+    "ax.bar(positions + bar_width / 2, qml.math.to_numpy(mk_probs), bar_width * 0.9, color=\"#eb6834\", label=karaoke_label)\n",
+    "ax.set_xticks(positions, bitstrings, rotation=90)\n",
+    "ax.set_xlabel(\"Basis state [-]\")\n",
+    "ax.set_ylabel(\"Probability [-]\")\n",
+    "ax.spines[[\"top\", \"right\"]].set_visible(False)\n",
+    "ax.legend(frameon=False)\n",
+    "fig.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4f90acd9",
+   "metadata": {},
+   "source": [
+    "Part of the difference is structural. Matchgates act separately on the even-parity states $\\{|00\\rangle, |11\\rangle\\}$ and\n",
+    "the odd-parity states $\\{|01\\rangle, |10\\rangle\\}$, so they conserve the parity of the number of $1$s: starting from\n",
+    "$|0000\\rangle$, the karaoke version only reaches even-parity states, whereas the original circuit does not. Since the karaoke version puts no weight on odd-parity states, the total\n",
+    "variation distance is at least the odd-parity probability of the original circuit; the even-parity sector can differ\n",
+    "as well."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "7804f38a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.881196Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.880618Z",
+     "iopub.status.idle": "2026-10-07T17:24:59.892542Z",
+     "shell.execute_reply": "2026-10-07T17:24:59.888923Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "odd-parity probability, original: 0.541\n",
+      "odd-parity probability, karaoke:  8.0e-16\n"
+     ]
+    }
+   ],
+   "source": [
+    "odd_parity_states = [index for index in range(2**n_wires) if bin(index).count(\"1\") % 2 == 1]\n",
+    "original_odd_probability = qml.math.to_numpy(original_probs)[odd_parity_states].sum()\n",
+    "karaoke_odd_probability = qml.math.to_numpy(mk_probs)[odd_parity_states].sum()\n",
+    "print(f\"odd-parity probability, original: {original_odd_probability:.3f}\")\n",
+    "print(f\"odd-parity probability, karaoke:  {karaoke_odd_probability:.1e}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6366cb27",
+   "metadata": {},
+   "source": [
+    "The distance is not specific to these parameters: over random features and weights, it stays large."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "b3cec09f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:24:59.897537Z",
+     "iopub.status.busy": "2026-10-07T17:24:59.897062Z",
+     "iopub.status.idle": "2026-10-07T17:25:00.863257Z",
+     "shell.execute_reply": "2026-10-07T17:25:00.860724Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "TVD(mk.qubit, original) over 10 draws: min 0.541, mean 0.665, max 0.764\n"
+     ]
+    }
+   ],
+   "source": [
+    "distances = []\n",
+    "for seed in range(10):\n",
+    "    seed_rng = np.random.default_rng(seed)\n",
+    "    seed_features = seed_rng.uniform(0, np.pi, size=n_wires)\n",
+    "    seed_weights = seed_rng.uniform(0, 2 * np.pi, size=weights_shape)\n",
+    "    seed_original_probs = generic_reference(seed_features, seed_weights)\n",
+    "    distances.append(total_variation_distance(generic_mk(seed_features, seed_weights), seed_original_probs))\n",
+    "summary = f\"min {min(distances):.3f}, mean {np.mean(distances):.3f}, max {max(distances):.3f}\"\n",
+    "print(f\"TVD(mk.qubit, original) over {len(distances)} draws: {summary}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4f7a6969",
+   "metadata": {},
+   "source": [
+    "The karaoke version of a generic circuit is a different model, not an approximation with a controlled error. It is a\n",
+    "parametrized model that `nif.qubit` simulates efficiently, as the last section shows.\n",
+    "\n",
+    "## Custom rules\n",
+    "\n",
+    "`MatchgateTranslator(rules=...)` takes rules indexed by operation name; they take precedence over the default ones. By\n",
+    "default, a SWAP is decomposed into three CNOTs, each translated into five matchgates. The fermionic swap `fSWAP` is a\n",
+    "matchgate that differs from the SWAP only by a sign on $|11\\rangle$:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "8648c231",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:25:00.868064Z",
+     "iopub.status.busy": "2026-10-07T17:25:00.867846Z",
+     "iopub.status.idle": "2026-10-07T17:25:00.875001Z",
+     "shell.execute_reply": "2026-10-07T17:25:00.872744Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[[ 1.  0.  0.  0.]\n",
+      " [ 0.  0.  1.  0.]\n",
+      " [ 0.  1.  0.  0.]\n",
+      " [ 0.  0.  0. -1.]]\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(np.real(qml.math.to_numpy(qml.matrix(fSWAP(wires=[0, 1])))))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "10fc9f4b",
+   "metadata": {},
+   "source": [
+    "A rule replacing every SWAP by an `fSWAP` is therefore exact on states where the two wires are never both in\n",
+    "$|1\\rangle$, such as a single excitation hopping along the chain. `fSWAP` acts on neighbouring wires only, so this rule is\n",
+    "meant for SWAPs between neighbours."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "e4eed24a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:25:00.879576Z",
+     "iopub.status.busy": "2026-10-07T17:25:00.879375Z",
+     "iopub.status.idle": "2026-10-07T17:25:00.896183Z",
+     "shell.execute_reply": "2026-10-07T17:25:00.895174Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "default rules: SWAP[1, 2] -> 15 operations\n",
+      "custom rule:   SWAP[1, 2] -> fSWAP[1, 2]\n"
+     ]
+    }
+   ],
+   "source": [
+    "fswap_translator = mk.MatchgateTranslator(rules={\"SWAP\": lambda op: [fSWAP(wires=op.wires)]})\n",
+    "default_swap = translator.translate(qml.SWAP(wires=[1, 2]), wire_order=range(4))\n",
+    "custom_swap = fswap_translator.translate(qml.SWAP(wires=[1, 2]), wire_order=range(4))\n",
+    "print(f\"default rules: SWAP[1, 2] -> {len(default_swap)} operations\")\n",
+    "print(f\"custom rule:   SWAP[1, 2] -> {describe(custom_swap)}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "77252b4e",
+   "metadata": {},
+   "source": [
+    "The translator is passed to the device with the `translator` keyword. On a single-excitation circuit with SWAPs, the\n",
+    "custom rule gives the exact probabilities and the default rules do not."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "c4afba30",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:25:00.900911Z",
+     "iopub.status.busy": "2026-10-07T17:25:00.900714Z",
+     "iopub.status.idle": "2026-10-07T17:25:01.049825Z",
+     "shell.execute_reply": "2026-10-07T17:25:01.047990Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "default rules: 45 operations, TVD to the original = 9.0e-01\n",
+      "custom rule  : 17 operations, TVD to the original = 9.9e-16\n"
+     ]
+    }
+   ],
+   "source": [
+    "n_wires = 4\n",
+    "rng = np.random.default_rng(1)\n",
+    "hopping_angles = rng.uniform(0, 2 * np.pi, size=(2, n_wires))\n",
+    "\n",
+    "\n",
+    "def single_excitation_circuit(angles):\n",
+    "    qml.BasisState(np.array([1, 0, 0, 0]), wires=range(n_wires))\n",
+    "    for layer in angles:\n",
+    "        for wire in range(n_wires - 1):\n",
+    "            qml.SingleExcitation(layer[wire], wires=[wire, wire + 1])\n",
+    "        qml.SWAP(wires=[1, 2])\n",
+    "        for wire in range(n_wires):\n",
+    "            qml.PhaseShift(layer[wire], wires=wire)\n",
+    "    return qml.probs(wires=range(n_wires))\n",
+    "\n",
+    "\n",
+    "hopping_reference = qml.QNode(single_excitation_circuit, qml.device(\"default.qubit\", wires=n_wires))\n",
+    "hopping_default = qml.QNode(single_excitation_circuit, qml.device(\"mk.qubit\", wires=n_wires))\n",
+    "hopping_custom = qml.QNode(\n",
+    "    single_excitation_circuit, qml.device(\"mk.qubit\", wires=n_wires, translator=fswap_translator)\n",
+    ")\n",
+    "\n",
+    "reference_probs = hopping_reference(hopping_angles)\n",
+    "for label, qnode in [(\"default rules\", hopping_default), (\"custom rule  \", hopping_custom)]:\n",
+    "    n_ops = len(qml.workflow.construct_batch(qnode, level=\"device\")(hopping_angles)[0][0].operations)\n",
+    "    distance = total_variation_distance(qnode(hopping_angles), reference_probs)\n",
+    "    print(f\"{label}: {n_ops:2d} operations, TVD to the original = {distance:.1e}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f6b7fef2",
+   "metadata": {},
+   "source": [
+    "## Scaling to 40 qubits\n",
+    "\n",
+    "The state of `nif.qubit` is a $2n \\times 2n$ single-particle transition matrix instead of $2^n$ amplitudes, so the\n",
+    "translated circuit runs on 40 qubits where a statevector would not fit in memory. We compute $\\langle Z_0 \\rangle$ of\n",
+    "the karaoke version of the generic circuit above on 40 qubits. This is the expectation value of the matchgate\n",
+    "counterpart; the original 40-qubit circuit is not computed here."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "6a92c8b1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-10-07T17:25:01.055494Z",
+     "iopub.status.busy": "2026-10-07T17:25:01.055280Z",
+     "iopub.status.idle": "2026-10-07T17:25:04.287892Z",
+     "shell.execute_reply": "2026-10-07T17:25:04.286616Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<Z_0> = 0.2986 from 820 matchgate operations in 2.8 s\n",
+      "nif.qubit state: transition matrix of shape (80, 80)\n",
+      "statevector: 2^40 complex128 amplitudes = 16 TiB\n"
+     ]
+    }
+   ],
+   "source": [
+    "n_wires = 40\n",
+    "rng = np.random.default_rng(7)\n",
+    "large_weights_shape = qml.StronglyEntanglingLayers.shape(n_layers=2, n_wires=n_wires)\n",
+    "large_features = rng.uniform(0, np.pi, size=n_wires)\n",
+    "large_weights = rng.uniform(0, 2 * np.pi, size=large_weights_shape)\n",
+    "large_device = qml.device(\"mk.qubit\", wires=n_wires)\n",
+    "\n",
+    "\n",
+    "@qml.qnode(large_device)\n",
+    "def large_circuit(features, weights):\n",
+    "    qml.AngleEmbedding(features, wires=range(n_wires))\n",
+    "    qml.StronglyEntanglingLayers(weights, wires=range(n_wires))\n",
+    "    return qml.expval(qml.PauliZ(0))\n",
+    "\n",
+    "\n",
+    "start = time.perf_counter()\n",
+    "expectation_value = large_circuit(large_features, large_weights)\n",
+    "elapsed = time.perf_counter() - start\n",
+    "\n",
+    "large_tape = qml.workflow.construct_batch(large_circuit, level=\"device\")(large_features, large_weights)[0][0]\n",
+    "n_matchgates = len(large_tape.operations)\n",
+    "print(f\"<Z_0> = {float(expectation_value):.4f} from {n_matchgates} matchgate operations in {elapsed:.1f} s\")\n",
+    "print(f\"nif.qubit state: transition matrix of shape {tuple(large_device.global_sptm.matrix().shape)}\")\n",
+    "print(f\"statevector: 2^{n_wires} complex128 amplitudes = {2**n_wires * 16 / 2**40:.0f} TiB\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.14.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
