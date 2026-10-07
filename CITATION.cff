@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: MajoranaKaraoke
+abstract: A PennyLane device that translates any circuit into matchgates and simulates it with MatchCake's nif.qubit
+  device.
+type: software
+authors:
+- given-names: Jérémie
+  family-names: Gince
+  orcid: https://orcid.org/0009-0002-7179-375X
+repository-code: https://github.com/MatchCake/MajoranaKaraoke
+url: https://MatchCake.github.io/MajoranaKaraoke
+license: Apache-2.0
+references:
+- type: software
+  title: 'MatchCake: A Python Simulator for Non-Interacting Fermionic Quantum Circuits with Machine Learning
+    Applications'
+  doi: 10.5281/zenodo.22917735
+  authors:
+  - given-names: Jérémie
+    family-names: Gince
+    orcid: https://orcid.org/0009-0002-7179-375X
+  repository-code: https://github.com/MatchCake/MatchCake
+  license: Apache-2.0
